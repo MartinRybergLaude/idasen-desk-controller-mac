@@ -22,8 +22,12 @@ class BluetoothManager: NSObject {
 
     var onConnectedPeripheralChange: (CBPeripheral?) -> Void = { _ in  }
     private var connectPeripheralRSSI: NSNumber?
-    var connectedPeripheral: CBPeripheral? // Or is currently being connected to
 
+    /// The peripheral we are attempting to connect to (set in didDiscover)
+    private var pendingPeripheral: CBPeripheral?
+
+    /// The peripheral that is fully connected (set in didConnect, cleared in didDisconnect)
+    private(set) var connectedPeripheral: CBPeripheral?
 
     // Not currently used... just in case I want to handle multiple desks at once
     var onAvailablePeripheralsChange: ([CBPeripheral]) -> Void = { _ in }
@@ -55,11 +59,11 @@ class BluetoothManager: NSObject {
     }
 
     func reconnect() {
-        guard let peripheral = connectedPeripheral,
-              peripheral.state == .disconnected else {
-                  return
+        // Try connected peripheral first, then pending
+        let peripheral = connectedPeripheral ?? pendingPeripheral
+        guard let peripheral, peripheral.state == .disconnected else {
+            return
         }
-
         centralManager?.connect(peripheral, options: nil)
     }
 }
@@ -75,8 +79,8 @@ extension BluetoothManager: CBCentralManagerDelegate {
                 return
             }
 
-            if let connectedPeripheral = connectedPeripheral, connectedPeripheral.state == .disconnected {
-                central.connect(connectedPeripheral, options: nil)
+            if let peripheral = connectedPeripheral ?? pendingPeripheral, peripheral.state == .disconnected {
+                central.connect(peripheral, options: nil)
                 return
             }
             central.scanForPeripherals(withServices: nil, options: nil)
@@ -85,7 +89,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
 
     nonisolated func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         MainActor.assumeIsolated {
-            guard connectedPeripheral != peripheral, matchCriteria(peripheral) else {
+            guard pendingPeripheral != peripheral && connectedPeripheral != peripheral, matchCriteria(peripheral) else {
                 return
             }
 
@@ -95,17 +99,17 @@ extension BluetoothManager: CBCentralManagerDelegate {
 
             let isClosestMatchingPeripheral = (connectPeripheralRSSI != nil && RSSI.intValue < connectPeripheralRSSI!.intValue)
 
-            if connectedPeripheral == nil || isClosestMatchingPeripheral {
+            if pendingPeripheral == nil || isClosestMatchingPeripheral {
                 central.connect(peripheral, options: nil)
                 connectPeripheralRSSI = RSSI
-                connectedPeripheral = peripheral
+                pendingPeripheral = peripheral
             }
         }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         MainActor.assumeIsolated {
-            guard peripheral == connectedPeripheral else {
+            guard peripheral == pendingPeripheral else {
                 return
             }
 
@@ -113,18 +117,22 @@ extension BluetoothManager: CBCentralManagerDelegate {
                 central.stopScan()
             }
 
+            // Promote pending → connected
+            connectedPeripheral = peripheral
+            pendingPeripheral = nil
             onConnectedPeripheralChange(peripheral)
         }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         MainActor.assumeIsolated {
-            guard peripheral == connectedPeripheral else {
-                return
+            if peripheral == connectedPeripheral {
+                connectedPeripheral = nil
             }
-
+            if peripheral == pendingPeripheral {
+                pendingPeripheral = nil
+            }
             connectPeripheralRSSI = nil
-            connectedPeripheral = nil
 
             onConnectedPeripheralChange(nil)
         }
@@ -132,12 +140,10 @@ extension BluetoothManager: CBCentralManagerDelegate {
 
     nonisolated func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         MainActor.assumeIsolated {
-            guard peripheral == connectedPeripheral else {
-                return
+            if peripheral == pendingPeripheral {
+                pendingPeripheral = nil
             }
-
             connectPeripheralRSSI = nil
-            connectedPeripheral = nil
 
             onConnectedPeripheralChange(nil)
         }

@@ -56,7 +56,7 @@ extension DeskPeripheral: CBPeripheralDelegate {
 
     nonisolated func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         MainActor.assumeIsolated {
-            guard peripheral == self.peripheral, let services = peripheral.services else {
+            guard error == nil, peripheral == self.peripheral, let services = peripheral.services else {
                 return
             }
 
@@ -76,7 +76,7 @@ extension DeskPeripheral: CBPeripheralDelegate {
 
     nonisolated func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         MainActor.assumeIsolated {
-            guard peripheral == self.peripheral, let characteristics = service.characteristics else {
+            guard error == nil, peripheral == self.peripheral, let characteristics = service.characteristics else {
                 return
             }
 
@@ -97,7 +97,7 @@ extension DeskPeripheral: CBPeripheralDelegate {
 
     nonisolated func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         MainActor.assumeIsolated {
-            if characteristic == positionCharacteristic, let value = characteristic.value {
+            if characteristic == positionCharacteristic, let value = characteristic.value, error == nil {
 
                 hasLoadedPositionCharacteristicValues = true
 

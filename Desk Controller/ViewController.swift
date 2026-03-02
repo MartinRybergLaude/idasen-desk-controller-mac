@@ -94,11 +94,12 @@ class ViewController: NSViewController {
     }
 
     func updateConnectionLabels() {
+        let isConnected = bluetoothManager.connectedPeripheral?.state == .connected
 
-        containerStackView?.isHidden = (bluetoothManager.connectedPeripheral == nil)
-        messageLabel?.isHidden = !(bluetoothManager.connectedPeripheral == nil)
+        containerStackView?.isHidden = !isConnected
+        messageLabel?.isHidden = isConnected
 
-        statusLabel?.stringValue = (bluetoothManager.connectedPeripheral == nil) ? "Not connected" : "Connected"
+        statusLabel?.stringValue = isConnected ? "Connected" : "Not connected"
         deviceNameLabel?.stringValue = bluetoothManager.connectedPeripheral?.name ?? ""
         statusIndicator?.layer?.backgroundColor = NSColor.red.cgColor
 
@@ -108,12 +109,12 @@ class ViewController: NSViewController {
             case .poweredOff:
                 statusLabel.stringValue = "Turning bluetooth on"
             case .poweredOn:
-                statusLabel.stringValue = (bluetoothManager.connectedPeripheral == nil) ? "Not connected" : "Connected"
+                statusLabel.stringValue = isConnected ? "Connected" : "Not connected"
                 messageLabel?.stringValue = "Searching for your Desk... \n\nIf the desk hasn't connected to this Mac before, make sure to set it into pairing mode. \n\nOtherwise, make sure no other apps are currently connected to it."
 
-                statusIndicator?.layer?.backgroundColor = (bluetoothManager.connectedPeripheral == nil) ? NSColor.orange.cgColor : NSColor.green.cgColor
+                statusIndicator?.layer?.backgroundColor = isConnected ? NSColor.green.cgColor : NSColor.orange.cgColor
 
-                if bluetoothManager.connectedPeripheral == nil {
+                if !isConnected {
                     deviceNameLabel?.stringValue = "Searching for nearby desks"
                 }
             case .resetting:
@@ -208,30 +209,28 @@ class ViewController: NSViewController {
     }
 
     @IBAction func sit(_ sender: Any) {
-
-        guard let button = sitButton else {
+        guard let button = sitButton, let controller else {
             return
         }
 
         if button.title == stopLabelString {
-            controller?.stopMoving()
+            controller.stopMoving()
         } else {
             button.title = stopLabelString
-            controller?.moveToPosition(.sit)
+            controller.moveToPosition(.sit)
         }
     }
 
     @IBAction func stand(_ sender: Any) {
-
-        guard let button = standButton else {
+        guard let button = standButton, let controller else {
             return
         }
 
         if button.title == stopLabelString {
-            controller?.stopMoving()
+            controller.stopMoving()
         } else {
             button.title = stopLabelString
-            controller?.moveToPosition(.stand)
+            controller.moveToPosition(.stand)
         }
     }
 
