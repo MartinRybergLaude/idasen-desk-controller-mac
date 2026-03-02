@@ -8,149 +8,77 @@
 import Foundation
 import LaunchAtLogin
 
-enum Position {
+enum Position: Sendable {
     case sit, stand, custom(height: Float)
 }
 
+@MainActor
 class Preferences {
-    
+
     static let shared = Preferences()
-    
+
     private let standingKey = "standingPositionValue"
     private let sittingKey = "sittingPositionValue"
 
     private let automaticStandKey = "automaticStandValue"
     private let automaticStandInactivityKey = "automaticStandInactivityKey"
     private let automaticStandEnabledKey = "automaticStandEnabledKey"
-    
+
     private let offsetKey = "positionOffsetValue"
-    
+
     private let isMetricKey = "isMetric"
-    
+
     private let hasLaunched = "hasLaunched"
 
     var standingPosition: Float {
-        get {
-            if let position = UserDefaults.standard.value(forKey: standingKey) {
-                return position as! Float
-            }
-            return 110 // Default standing position is
-        }
-        
-        set {
-            // print("Save new Standing position: \(newValue)")
-            UserDefaults.standard.setValue(newValue, forKey: standingKey)
-        }
+        get { UserDefaults.standard.object(forKey: standingKey) as? Float ?? 110 }
+        set { UserDefaults.standard.set(newValue, forKey: standingKey) }
     }
-    
+
     var sittingPosition: Float {
-        get {
-            if let position = UserDefaults.standard.value(forKey: sittingKey) {
-                return position as! Float
-            }
-            return 70 // Default sitting position
-        }
-        
-        set {
-            // print("Save new Sitting position: \(newValue)")
-            UserDefaults.standard.setValue(newValue, forKey: sittingKey)
-        }
+        get { UserDefaults.standard.object(forKey: sittingKey) as? Float ?? 70 }
+        set { UserDefaults.standard.set(newValue, forKey: sittingKey) }
     }
-    
+
     var automaticStandPerHour: TimeInterval {
-        get {
-            if let standTime = UserDefaults.standard.value(forKey: automaticStandKey) {
-                return standTime as! TimeInterval
-            }
-            return 10 * 60 // Default automatic stand
-        }
-        
+        get { UserDefaults.standard.object(forKey: automaticStandKey) as? TimeInterval ?? 10 * 60 }
         set {
-            //print("Save new Automatic stand per hour: \(newValue)")
-            UserDefaults.standard.setValue(newValue, forKey: automaticStandKey)
+            UserDefaults.standard.set(newValue, forKey: automaticStandKey)
             DeskController.shared?.autoStand.update()
         }
     }
-    
+
     var automaticStandInactivity: TimeInterval {
-        get {
-            if let inactiveTime = UserDefaults.standard.value(forKey: automaticStandInactivityKey) {
-                return inactiveTime as! TimeInterval
-            }
-            return 5 * 60 // Default min
-        }
-        
-        set {
-            //print("Save new Automatic stand inactivity: \(newValue)")
-            UserDefaults.standard.setValue(newValue, forKey: automaticStandInactivityKey)
-        }
+        get { UserDefaults.standard.object(forKey: automaticStandInactivityKey) as? TimeInterval ?? 5 * 60 }
+        set { UserDefaults.standard.set(newValue, forKey: automaticStandInactivityKey) }
     }
-    
+
     var automaticStandEnabled: Bool {
-        get {
-            if let autoStandEnabled = UserDefaults.standard.value(forKey: automaticStandEnabledKey) {
-                return autoStandEnabled as! Bool
-            }
-            return false // Default disabled
-        }
-        
+        get { UserDefaults.standard.object(forKey: automaticStandEnabledKey) as? Bool ?? false }
         set {
-            //print("Saving automatic stand enabled \(newValue)")
-            UserDefaults.standard.setValue(newValue, forKey: automaticStandEnabledKey)
-            // Stop timers
+            UserDefaults.standard.set(newValue, forKey: automaticStandEnabledKey)
             DeskController.shared?.autoStand.update()
         }
     }
-    
+
     var positionOffset: Float {
-        get {
-            if let offset = UserDefaults.standard.value(forKey: offsetKey) {
-                return offset as! Float
-            }
-            return 0 // Default offset
-        }
-        
-        set {
-            // print("Save new position Offset: \(newValue)")
-            UserDefaults.standard.setValue(newValue, forKey: offsetKey)
-        }
+        get { UserDefaults.standard.object(forKey: offsetKey) as? Float ?? 0 }
+        set { UserDefaults.standard.set(newValue, forKey: offsetKey) }
     }
-    
+
     var isMetric: Bool {
-        get {
-            if let metric = UserDefaults.standard.value(forKey: isMetricKey) {
-                return metric as! Bool
-            }
-            return NSLocale.current.usesMetricSystem // Default from locale
-        }
-        
-        set {
-            // print("Saving is metric? \(newValue)")
-            UserDefaults.standard.setValue(newValue, forKey: isMetricKey)
-        }
+        get { UserDefaults.standard.object(forKey: isMetricKey) as? Bool ?? (Locale.current.measurementSystem == .metric) }
+        set { UserDefaults.standard.set(newValue, forKey: isMetricKey) }
     }
-    
+
     var openAtLogin: Bool {
-        get {
-            return LaunchAtLogin.isEnabled
-        }
-        set {
-            // print("Saving launch at login: \(newValue)")
-            LaunchAtLogin.isEnabled = newValue
-        }
+        get { LaunchAtLogin.isEnabled }
+        set { LaunchAtLogin.isEnabled = newValue }
     }
-    
+
     var isFirstLaunch: Bool {
-        get {
-            if let hasLaunchedBefore = UserDefaults.standard.value(forKey: hasLaunched) {
-                return !(hasLaunchedBefore as! Bool)
-            }
-            return true
-        }
-        
-        set {
-            UserDefaults.standard.setValue(!newValue, forKey: hasLaunched)
-        }
+        get { !(UserDefaults.standard.object(forKey: hasLaunched) as? Bool ?? false) }
+        set { UserDefaults.standard.set(!newValue, forKey: hasLaunched) }
     }
 
     func forPosition(_ position: Position) -> Float {
@@ -163,7 +91,7 @@ class Preferences {
             return height
         }
     }
-    
+
     var measurementMetric: Unit {
         return isMetric ? UnitLength.centimeters : UnitLength.inches
     }
