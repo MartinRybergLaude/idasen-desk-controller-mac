@@ -67,6 +67,21 @@ class ViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        preferredContentSize = NSSize(width: 260, height: 170)
+
+        // Add glass background to increase popover opacity
+        let glass = NSGlassEffectView()
+        glass.style = .regular
+        glass.tintColor = NSColor.white.withAlphaComponent(0.3)
+        glass.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(glass, positioned: .below, relativeTo: nil)
+        NSLayoutConstraint.activate([
+            glass.topAnchor.constraint(equalTo: view.topAnchor),
+            glass.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            glass.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            glass.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+
         containerStackView?.isHidden = true
         messageLabel?.stringValue = ""
 
