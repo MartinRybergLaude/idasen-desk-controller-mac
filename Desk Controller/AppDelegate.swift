@@ -43,10 +43,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Set the status bar icon and action
         if let button = statusBarItem.button {
 
-            if let image = NSImage(named: "StatusBarButtonImage") {
-                image.size = NSSize(width: 16, height: 16)
-                button.image = image
-            }
+            let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
+            button.image = NSImage(systemSymbolName: "arrow.up.and.down.circle", accessibilityDescription: "Desk Controller")?.withSymbolConfiguration(config)
 
             button.menu = statusBarMenu
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
